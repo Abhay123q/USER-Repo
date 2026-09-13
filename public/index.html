@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <span class="icon">🚀</span>
+            <span class="brand-text">UserDash</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-link active" data-target="users-section">
+                <span class="icon">👥</span> Users
+            </a>
+            <a href="#" class="nav-link" data-target="notifications-section">
+                <span class="icon">🔔</span> Notifications
+            </a>
+            <a href="#" class="nav-link" data-target="analytics-section">
+                <span class="icon">📊</span> Analytics
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="main-header">
+            <h1 id="section-title">Users</h1>
+        </header>
+
+        <div class="content-container">
+            <!-- Users Section -->
+            <section id="users-section" class="content-section active">
+                <div class="section-toolbar">
+                    <div class="search-container">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="user-search" placeholder="Search by name, email, phone, city...">
+                    </div>
+                    <button class="btn btn-primary" onclick="openAddUserModal()">+ Add User</button>
+                </div>
+                <div class="card table-card">
+                    <div class="table-responsive">
+                        <table class="data-table" id="users-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Location</th>
+                                    <th>Country</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Users will be rendered here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Notifications Section -->
+            <section id="notifications-section" class="content-section">
+                <div class="card form-card">
+                    <h2>Send Notification</h2>
+                    <form id="notification-form" onsubmit="sendNotification(event)">
+                        <div class="form-group">
+                            <label for="notif-user">Select User</label>
+                            <select id="notif-user" required>
+                                <option value="">Loading users...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="notif-subject">Subject</label>
+                            <input type="text" id="notif-subject" required placeholder="Enter subject">
+                        </div>
+                        <div class="form-group">
+                            <label for="notif-message">Message</label>
+                            <textarea id="notif-message" rows="4" required placeholder="Enter message..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Notification</button>
+                    </form>
+                </div>
+
+                <div class="card mt-4 table-card">
+                    <h2>Notification History</h2>
+                    <div class="table-responsive">
+                        <table class="data-table" id="notifications-history-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Subject</th>
+                                    <th>Sent Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Notification history here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section id="analytics-section" class="content-section">
+                <div class="summary-cards" id="analytics-summary">
+                    <!-- Summary cards here -->
+                </div>
+                
+                <div class="charts-grid">
+                    <div class="card chart-card">
+                        <h3>Users by City</h3>
+                        <canvas id="cityChart"></canvas>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>Users by State</h3>
+                        <canvas id="stateChart"></canvas>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>Users by Country</h3>
+                        <canvas id="countryChart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal Overlay -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="modal-title">Modal Title</h2>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-content" id="modal-content">
+                <!-- Modal content goes here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Dialog Overlay -->
+    <div class="modal-overlay" id="confirm-overlay">
+        <div class="modal-card confirm-card">
+            <div class="modal-header">
+                <h2 id="confirm-title">Confirm</h2>
+                <button class="close-btn" onclick="closeConfirm()">×</button>
+            </div>
+            <div class="modal-content" id="confirm-message">
+                Are you sure?
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeConfirm()">Cancel</button>
+                <button class="btn btn-danger" id="confirm-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Back To Top Button -->
+    <button id="back-to-top" class="back-to-top" title="Back to top" aria-label="Back to top">
+        ↑
+    </button>
+
+    <!-- Templates -->
+    <template id="user-form-template">
+        <form id="user-form" onsubmit="handleUserSubmit(event)">
+            <input type="hidden" id="user-id">
+            <div class="form-row">
+                <div class="form-group half">
+                    <label for="first_name">First Name *</label>
+                    <input type="text" id="first_name" required>
+                </div>
+                <div class="form-group half">
+                    <label for="last_name">Last Name *</label>
+                    <input type="text" id="last_name" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group half">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="form-group half">
+                    <label for="phone">Phone</label>
+                    <input type="text" id="phone">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="city">City</label>
+                <input type="text" id="city">
+            </div>
+            <div class="form-row">
+                <div class="form-group half">
+                    <label for="state">State</label>
+                    <input type="text" id="state">
+                </div>
+                <div class="form-group half">
+                    <label for="country">Country</label>
+                    <input type="text" id="country">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save User</button>
+            </div>
+        </form>
+    </template>
+
+    <!-- Scripts -->
+    <script src="js/app.js"></script>
+    <script src="js/users.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/analytics.js"></script>
+</body>
+</html>
