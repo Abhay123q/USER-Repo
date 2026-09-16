@@ -23,7 +23,7 @@ exports.getUsers = async (req, res) => {
         console.error('Error fetching users:', error);
         return res.status(500).json({
             success: false,
-            message: 'Internal server error'
+            message: error.message || 'Internal server error'
         });
     }
 };

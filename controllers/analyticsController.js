@@ -14,7 +14,7 @@ exports.getSummary = async (req, res) => {
         console.error('Error fetching analytics summary:', error);
         return res.status(500).json({
             success: false,
-            message: 'Internal server error'
+            message: error.message || 'Internal server error'
         });
     }
 };
@@ -33,7 +33,7 @@ exports.getByCity = async (req, res) => {
         console.error('Error fetching users by city:', error);
         return res.status(500).json({
             success: false,
-            message: 'Internal server error'
+            message: error.message || 'Internal server error'
         });
     }
 };
@@ -52,7 +52,7 @@ exports.getByState = async (req, res) => {
         console.error('Error fetching users by state:', error);
         return res.status(500).json({
             success: false,
-            message: 'Internal server error'
+            message: error.message || 'Internal server error'
         });
     }
 };
@@ -71,7 +71,7 @@ exports.getByCountry = async (req, res) => {
         console.error('Error fetching users by country:', error);
         return res.status(500).json({
             success: false,
-            message: 'Internal server error'
+            message: error.message || 'Internal server error'
         });
     }
 };

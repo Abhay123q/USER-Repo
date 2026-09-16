@@ -1,25 +1,86 @@
 require('dotenv').config();
 
-// Check for Postgres connection strings (automatically supplied by Supabase / Vercel integration)
+// Check for Postgres connection strings or individual parameters
 const postgresUrl = 
     process.env.POSTGRES_URL || 
+    process.env.POSTGRES_PRISMA_URL ||
     process.env.POSTGRES_URL_NON_POOLING || 
     process.env.DATABASE_URL || 
     process.env.SUPABASE_DATABASE_URL;
 
 let dbAdapter;
 
-if (postgresUrl) {
+if (postgresUrl || process.env.POSTGRES_HOST) {
     console.log('Detected Cloud PostgreSQL / Supabase connection.');
     const { Pool } = require('pg');
     
-    // Create PG pool with SSL support for cloud (Supabase)
-    const pgPool = new Pool({
-        connectionString: postgresUrl,
-        ssl: {
-            rejectUnauthorized: false
+    const poolConfig = postgresUrl 
+        ? {
+            connectionString: postgresUrl,
+            ssl: { rejectUnauthorized: false }
+          }
+        : {
+            host: process.env.POSTGRES_HOST,
+            port: process.env.POSTGRES_PORT || 5432,
+            user: process.env.POSTGRES_USER || 'postgres',
+            password: process.env.POSTGRES_PASSWORD,
+            database: process.env.POSTGRES_DATABASE || 'postgres',
+            ssl: { rejectUnauthorized: false }
+          };
+
+    const pgPool = new Pool(poolConfig);
+
+    // Auto-create tables in Supabase if they don't exist
+    const ensureTablesExist = async () => {
+        try {
+            await pgPool.query(`
+                CREATE TABLE IF NOT EXISTS users (
+                  id SERIAL PRIMARY KEY,
+                  first_name VARCHAR(50) NOT NULL,
+                  last_name VARCHAR(50) NOT NULL,
+                  email VARCHAR(100) NOT NULL UNIQUE,
+                  phone VARCHAR(20),
+                  city VARCHAR(50),
+                  state VARCHAR(50),
+                  country VARCHAR(50),
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS notifications (
+                  id SERIAL PRIMARY KEY,
+                  user_id INT NOT NULL,
+                  subject VARCHAR(200) NOT NULL,
+                  message TEXT NOT NULL,
+                  sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  status VARCHAR(20) DEFAULT 'sent',
+                  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                );
+            `);
+
+            // Check if users table is empty; if so, seed initial users
+            const check = await pgPool.query('SELECT COUNT(*) as count FROM users');
+            if (parseInt(check.rows[0].count, 10) === 0) {
+                await pgPool.query(`
+                    INSERT INTO users (first_name, last_name, email, phone, city, state, country) VALUES
+                    ('Rahul', 'Sharma', 'rahul.s@example.com', '+91 9876543210', 'Mumbai', 'Maharashtra', 'India'),
+                    ('Priya', 'Patel', 'priya.p@example.com', '+91 9876543211', 'New Delhi', 'Delhi', 'India'),
+                    ('Amit', 'Singh', 'amit.s@example.com', '+91 9876543212', 'Bangalore', 'Karnataka', 'India'),
+                    ('Neha', 'Gupta', 'neha.g@example.com', '+91 9876543213', 'Chennai', 'Tamil Nadu', 'India'),
+                    ('Abhay', 'Kumar', 'abhaykumar4771@gmail.com', '+91 9876543219', 'Ranchi', 'Jharkhand', 'India'),
+                    ('John', 'Doe', 'john.doe@example.com', '+1 2125551234', 'New York City', 'New York', 'USA'),
+                    ('Jane', 'Smith', 'jane.smith@example.com', '+1 4155551234', 'San Francisco', 'California', 'USA'),
+                    ('Emily', 'Brown', 'emily.b@example.com', '+44 7911123456', 'London', 'England', 'UK');
+                `);
+                console.log('Seeded initial users in Supabase.');
+            }
+            console.log('Supabase tables verified and ready.');
+        } catch (initErr) {
+            console.error('Error ensuring Supabase tables exist:', initErr.message);
         }
-    });
+    };
+
+    ensureTablesExist();
 
     // Helper to translate MySQL queries/syntax to PostgreSQL
     const translateQuery = (sql, params = []) => {
@@ -67,11 +128,6 @@ if (postgresUrl) {
             };
         }
     };
-
-    // Test connection
-    pgPool.query('SELECT NOW()')
-        .then(() => console.log('Successfully connected to Cloud PostgreSQL (Supabase).'))
-        .catch(err => console.error('Cloud PostgreSQL connection error:', err.message));
 
 } else {
     // Local MySQL fallback
