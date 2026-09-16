@@ -6,8 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "migrate": "mysql -u root -pAbhay@123 < sql/schema.sql",
-    "seed": "mysql -u root -pAbhay@123 < sql/schema.sql"
+    "migrate": "mysql -u root -p < sql/schema.sql",
+    "seed": "mysql -u root -p < sql/schema.sql"
   },
   "engines": {
     "node": "20.x"
