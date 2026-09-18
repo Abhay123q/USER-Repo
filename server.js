@@ -15,10 +15,20 @@ const usersRouter = require('./routes/userRoutes');
 const notificationsRouter = require('./routes/notificationRoutes');
 const analyticsRouter = require('./routes/analyticsRoutes');
 
-// Mount API routes
+// Mount API routes (supports standard, Netlify function redirect, and stripped prefix)
 app.use('/api/users', usersRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/analytics', analyticsRouter);
+
+// Netlify Functions support
+app.use('/.netlify/functions/api/users', usersRouter);
+app.use('/.netlify/functions/api/notifications', notificationsRouter);
+app.use('/.netlify/functions/api/analytics', analyticsRouter);
+
+// Fallback for stripped /api prefix
+app.use('/users', usersRouter);
+app.use('/notifications', notificationsRouter);
+app.use('/analytics', analyticsRouter);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -26,8 +36,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: 'Internal Server Error' });
 });
 
-// Start server if not running as serverless function
-if (process.env.VERCEL !== '1') {
+// Start server if not running as serverless function (local dev / Docker / VMs)
+const isServerless = process.env.VERCEL === '1' || process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME;
+
+if (!isServerless) {
   const server = app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
   });
