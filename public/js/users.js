@@ -276,40 +276,62 @@ async function openEditUserModal(id) {
         openModal('Edit User', getUserFormHTML());
 
         setTimeout(function() {
+            var form = document.getElementById('user-form');
+            if (!form) return;
+
             document.getElementById('user-id').value = user.id;
             document.getElementById('first_name').value = user.first_name || '';
             document.getElementById('last_name').value = user.last_name || '';
             document.getElementById('email').value = user.email || '';
+            
             var rawPhone = user.phone || '';
-            // Strip country code if present for cleaner editing
             var code = countryCodes[user.country] || '';
             if (code && rawPhone.startsWith(code)) {
                 rawPhone = rawPhone.replace(code, '').trim();
             }
             document.getElementById('phone').value = rawPhone;
 
-            // Set country and trigger cascade
+            // Pre-fill country
             var countrySelect = document.getElementById('country');
-            countrySelect.value = user.country || '';
+            if (user.country) {
+                // If country not in options, append it
+                if (![...countrySelect.options].some(function(opt) { return opt.value === user.country; })) {
+                    var opt = document.createElement('option');
+                    opt.value = user.country;
+                    opt.textContent = user.country;
+                    countrySelect.appendChild(opt);
+                }
+                countrySelect.value = user.country;
+            }
             onCountryChange();
 
-            // Set state after country populates
-            setTimeout(function() {
-                var stateSelect = document.getElementById('state');
-                stateSelect.value = user.state || '';
-                onStateChange();
-
-                // Set city after state populates
-                setTimeout(function() {
-                    document.getElementById('city').value = user.city || '';
-                }, 50);
-            }, 50);
-
-            var form = document.getElementById('user-form');
-            if (form) {
-                form.addEventListener('submit', handleUserSubmit);
+            // Pre-fill state
+            var stateSelect = document.getElementById('state');
+            if (user.state) {
+                if (![...stateSelect.options].some(function(opt) { return opt.value === user.state; })) {
+                    var stateOpt = document.createElement('option');
+                    stateOpt.value = user.state;
+                    stateOpt.textContent = user.state;
+                    stateSelect.appendChild(stateOpt);
+                }
+                stateSelect.value = user.state;
             }
-        }, 50);
+            onStateChange();
+
+            // Pre-fill city
+            var citySelect = document.getElementById('city');
+            if (user.city) {
+                if (![...citySelect.options].some(function(opt) { return opt.value === user.city; })) {
+                    var cityOpt = document.createElement('option');
+                    cityOpt.value = user.city;
+                    cityOpt.textContent = user.city;
+                    citySelect.appendChild(cityOpt);
+                }
+                citySelect.value = user.city;
+            }
+
+            form.addEventListener('submit', handleUserSubmit);
+        }, 30);
     } else {
         showToast('Failed to load user details.', 'error');
     }
@@ -320,6 +342,9 @@ async function openEditUserModal(id) {
 // ==========================================
 async function handleUserSubmit(e) {
     e.preventDefault();
+
+    var submitBtn = e.target.querySelector('button[type="submit"]');
+    var originalText = submitBtn ? submitBtn.textContent : 'Save User';
 
     var id = document.getElementById('user-id').value;
     var userData = {
@@ -334,7 +359,6 @@ async function handleUserSubmit(e) {
 
     // --- Validations ---
     var nameRegex = /^[A-Za-z\s]{2,50}$/;
-    var phoneRegex = /^[0-9]{10}$/;
     var emailRegex = /^\S+@\S+\.\S+$/;
 
     // All fields required
@@ -394,17 +418,31 @@ async function handleUserSubmit(e) {
     var method = id ? 'PUT' : 'POST';
     var endpoint = id ? '/api/users/' + id : '/api/users';
 
-    var res = await apiCall(endpoint, {
-        method: method,
-        body: userData
-    });
+    try {
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+        }
 
-    if (res && res.success) {
-        showToast(id ? 'User updated successfully!' : 'User added successfully!');
-        closeModal();
-        loadUsers();
-    } else {
-        showToast(res.message || 'Failed to save user.', 'error');
+        var res = await apiCall(endpoint, {
+            method: method,
+            body: userData
+        });
+
+        if (res && res.success) {
+            showToast(id ? 'User updated successfully!' : 'User added successfully!');
+            closeModal();
+            loadUsers();
+        } else {
+            showToast(res.message || 'Failed to save user.', 'error');
+        }
+    } catch (err) {
+        showToast(err.message || 'An error occurred.', 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
     }
 }
 
@@ -419,7 +457,7 @@ function deleteUser(id) {
             showToast('User deleted successfully!');
             loadUsers();
         } else {
-            showToast('Failed to delete user.', 'error');
+            showToast(res.message || 'Failed to delete user.', 'error');
         }
     });
 }

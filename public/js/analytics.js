@@ -12,6 +12,15 @@ var COLORS = {
     varied: ['#4F46E5','#7C3AED','#EC4899','#F59E0B','#10B981','#06B6D4','#8B5CF6','#F97316','#14B8A6','#6366F1']
 };
 
+// Color helper to ensure enough colors for any number of items
+function getColors(palette, count) {
+    var colors = [];
+    for (var i = 0; i < count; i++) {
+        colors.push(palette[i % palette.length]);
+    }
+    return colors;
+}
+
 function destroyCharts() {
     if (charts.city) { charts.city.destroy(); charts.city = null; }
     if (charts.state) { charts.state.destroy(); charts.state = null; }
@@ -68,7 +77,7 @@ async function fetchAndRenderCityChart() {
                 datasets: [{
                     label: 'Users',
                     data: data,
-                    backgroundColor: COLORS.primary,
+                    backgroundColor: getColors(COLORS.primary, data.length),
                     borderWidth: 1
                 }]
             },
@@ -97,7 +106,7 @@ async function fetchAndRenderStateChart() {
                 datasets: [{
                     label: 'Users',
                     data: data,
-                    backgroundColor: COLORS.teal,
+                    backgroundColor: getColors(COLORS.teal, data.length),
                     borderWidth: 1
                 }]
             },
@@ -124,7 +133,7 @@ async function fetchAndRenderCountryChart() {
                 labels: labels,
                 datasets: [{
                     data: data,
-                    backgroundColor: COLORS.varied,
+                    backgroundColor: getColors(COLORS.varied, data.length),
                     borderWidth: 1
                 }]
             },

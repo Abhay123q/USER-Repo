@@ -22,18 +22,22 @@ app.use('/api/analytics', analyticsRouter);
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Internal Server Error' });
+  console.error('Unhandled server error:', err.stack || err);
+  res.status(500).json({ success: false, error: 'Internal Server Error' });
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+// Start server if not running as serverless function
+if (process.env.VERCEL !== '1') {
+  const server = app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
   });
-} else {
-  // Still listen if executed directly (e.g. Render / local production)
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Please stop the existing process or change PORT in .env.`);
+    } else {
+      console.error('Server error:', err);
+    }
   });
 }
 

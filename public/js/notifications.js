@@ -21,6 +21,9 @@ async function loadUserDropdown() {
 async function sendNotification(e) {
     e.preventDefault();
     
+    var submitBtn = e.target.querySelector('button[type="submit"]');
+    var originalText = submitBtn ? submitBtn.textContent : 'Send Notification';
+
     var userId = document.getElementById('notif-user').value;
     var subject = document.getElementById('notif-subject').value;
     var message = document.getElementById('notif-message').value;
@@ -41,35 +44,49 @@ async function sendNotification(e) {
         message: message
     };
     
-    var res = await apiCall('/api/notifications/send', {
-        method: 'POST',
-        body: payload
-    });
-    
-    if (res && res.success) {
-        showToast('Notification sent successfully!', 'success');
-        
-        // Show preview link prominently if available
-        if (res.data && res.data.previewUrl) {
-            var previewBox = document.getElementById('email-preview-box');
-            if (!previewBox) {
-                previewBox = document.createElement('div');
-                previewBox.id = 'email-preview-box';
-                previewBox.style.cssText = 'margin-top:16px;padding:16px;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:8px;text-align:center;';
-                document.getElementById('notification-form').parentNode.appendChild(previewBox);
-            }
-            previewBox.innerHTML = '<p style="margin:0 0 8px;font-weight:600;color:#4F46E5;">📧 Email sent! View it here:</p>' +
-                '<a href="' + res.data.previewUrl + '" target="_blank" style="color:#4F46E5;font-weight:500;text-decoration:underline;word-break:break-all;">' + res.data.previewUrl + '</a>' +
-                '<p style="margin:8px 0 0;font-size:0.85em;color:#64748B;">Note: Using Ethereal test email. To send real emails, configure Gmail SMTP in .env file.</p>';
+    try {
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
         }
+
+        var res = await apiCall('/api/notifications/send', {
+            method: 'POST',
+            body: payload
+        });
         
-        // Reset form
-        document.getElementById('notification-form').reset();
-        
-        // Reload history
-        loadNotificationHistory();
-    } else {
-        showToast(res.message || 'Failed to send notification.', 'error');
+        if (res && res.success) {
+            showToast(res.message || 'Notification sent successfully!', 'success');
+            
+            // Show preview link prominently if available
+            if (res.data && res.data.previewUrl) {
+                var previewBox = document.getElementById('email-preview-box');
+                if (!previewBox) {
+                    previewBox = document.createElement('div');
+                    previewBox.id = 'email-preview-box';
+                    previewBox.style.cssText = 'margin-top:16px;padding:16px;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:8px;text-align:center;';
+                    document.getElementById('notification-form').parentNode.appendChild(previewBox);
+                }
+                previewBox.innerHTML = '<p style="margin:0 0 8px;font-weight:600;color:#4F46E5;">📧 Email sent! View it here:</p>' +
+                    '<a href="' + res.data.previewUrl + '" target="_blank" style="color:#4F46E5;font-weight:500;text-decoration:underline;word-break:break-all;">' + res.data.previewUrl + '</a>' +
+                    '<p style="margin:8px 0 0;font-size:0.85em;color:#64748B;">Note: Using Ethereal test email. To send real emails, configure Gmail SMTP in .env file.</p>';
+            }
+            
+            // Reset form
+            document.getElementById('notification-form').reset();
+            
+            // Reload history
+            loadNotificationHistory();
+        } else {
+            showToast(res.message || 'Failed to send notification.', 'error');
+        }
+    } catch (err) {
+        showToast(err.message || 'Failed to send notification.', 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
     }
 }
 

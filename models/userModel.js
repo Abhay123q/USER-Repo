@@ -68,8 +68,8 @@ const userModel = {
   searchUsers: async (query) => {
     const searchTerm = `%${query}%`;
     const [rows] = await pool.query(
-      'SELECT * FROM users WHERE first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR city LIKE ? OR phone LIKE ?',
-      [searchTerm, searchTerm, searchTerm, searchTerm, searchTerm]
+      'SELECT * FROM users WHERE first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR city LIKE ? OR state LIKE ? OR country LIKE ? OR phone LIKE ? ORDER BY id ASC',
+      [searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm]
     );
     return rows;
   }

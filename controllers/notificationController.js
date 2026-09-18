@@ -75,9 +75,10 @@ exports.sendNotification = async (req, res) => {
             }
         }
 
-        // Always save notification to database
-        const insertQuery = 'INSERT INTO notifications (user_id, subject, message, sent_at) VALUES (?, ?, ?, NOW())';
-        await db.execute(insertQuery, [userId, subject, message]);
+        // Always save notification to database with status
+        const status = emailSent ? 'sent' : (gmailConfigured ? 'failed' : 'sent');
+        const insertQuery = 'INSERT INTO notifications (user_id, subject, message, sent_at, status) VALUES (?, ?, ?, NOW(), ?)';
+        await db.execute(insertQuery, [userId, subject, message, status]);
 
         // Build response message
         let responseMessage = '';
@@ -115,7 +116,7 @@ exports.sendNotification = async (req, res) => {
 exports.getHistory = async (req, res) => {
     try {
         const query = `
-            SELECT n.id, n.user_id, n.subject, n.message, n.sent_at, 
+            SELECT n.id, n.user_id, n.subject, n.message, n.sent_at, n.status,
                    u.first_name, u.last_name, u.email
             FROM notifications n
             JOIN users u ON n.user_id = u.id
